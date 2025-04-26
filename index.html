@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Audit Tracker</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+        max-width: 600px;
+        margin: auto;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        padding: 4px 8px;
+      }
+      .textarea {
+        width: 100%;
+        height: 100px;
+        margin-top: 10px;
+      }
+      .audit-link {
+        cursor: pointer;
+        color: blue;
+        text-decoration: underline;
+        display: block;
+        margin: 5px 0;
+      }
+      #importField {
+        width: 100%;
+        height: 80px;
+        margin-top: 10px;
+      }
+      #list .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      #list .row > div:first-child {
+        width: 120px; /* fixed width for item type */
+        word-break: break-word;
+        flex-shrink: 0;
+      }
+
+      #list .row > div:nth-child(3) {
+        width: 40px; /* fixed width for count display */
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <input
+      type="text"
+      id="auditTitle"
+      value=""
+      style="
+        font-size: 1.5em;
+        font-weight: bold;
+        width: 100%;
+        margin-bottom: 20px;
+      "
+      oninput="updateTitle()"
+    />
+
+    <div class="row">
+      <input type="text" id="typeInput" placeholder="Item type" />
+      <button class="btn" onclick="addType()">Add</button>
+    </div>
+
+    <div id="list"></div>
+
+    <textarea
+      id="notes"
+      class="textarea"
+      placeholder="Notes..."
+      oninput="updateNotes()"
+    ></textarea>
+
+    <div style="margin-top: 20px">
+      <button
+        class="btn"
+        onclick="exportText()"
+        style="
+          padding: 10px 20px;
+          background-color: #3498db;
+          color: white;
+          font-weight: bold;
+          border-radius: 5px;
+        "
+      >
+        Export
+      </button>
+    </div>
+
+    <div
+      class="danger-zone"
+      style="
+        margin-top: 30px;
+        padding: 15px;
+        border: 2px solid #c0392b;
+        background: #fbeaea;
+        border-radius: 8px;
+      "
+    >
+      <h4 style="color: #c0392b">Danger Zone</h4>
+      <button
+        class="btn"
+        onclick="clearAllCounts()"
+        style="background-color: #e74c3c; color: white"
+      >
+        Clear All Counts
+      </button>
+      <button
+        class="btn"
+        onclick="deleteList()"
+        style="background-color: #c0392b; color: white; margin-left: 10px"
+      >
+        Delete List
+      </button>
+    </div>
+
+    <script>
+      let items = {};
+      let notes = "";
+      let auditTitle = "";
+
+      window.electronAPI.loadData().then((data) => {
+        items = data.items || {};
+        notes = data.notes || "";
+        auditTitle = data.auditTitle || "Item Audit";
+        render();
+      });
+
+      window.addEventListener("beforeunload", () => {
+        saveAll();
+      });
+
+      function updateTitle() {
+        auditTitle = document.getElementById("auditTitle").value.trim();
+        saveAll();
+      }
+
+      function addType() {
+        const type = document.getElementById("typeInput").value.trim();
+        if (!type || items[type]) return;
+        items[type] = 0;
+        saveAndRender();
+      }
+
+      function renameType(oldName, newName) {
+        newName = newName.trim();
+        if (!newName || newName === oldName || items[newName]) return;
+        items[newName] = items[oldName];
+        delete items[oldName];
+        saveAndRender();
+      }
+
+      function clearCurrent() {
+        if (!confirm("Clear current audit? This won’t delete saved ones."))
+          return;
+        items = {};
+        notes = "";
+        saveAndRender();
+      }
+
+      function changeCount(type, delta) {
+        items[type] += delta;
+        if (items[type] < 0) items[type] = 0;
+        saveAndRender();
+      }
+
+      function clearCount(type) {
+        items[type] = 0;
+        saveAndRender();
+      }
+
+      function deleteList() {
+        if (!confirm("Delete the entire list?")) return;
+        items = {};
+        notes = "";
+        saveAndRender();
+      }
+
+      function clearAllCounts() {
+        Object.keys(items).forEach((type) => {
+          items[type] = 0;
+        });
+        saveAndRender();
+      }
+
+      function updateCount(type, value) {
+        const parsed = parseInt(value);
+        items[type] = isNaN(parsed) || parsed < 0 ? 0 : parsed;
+        saveAll();
+      }
+
+      function deleteType(type) {
+        delete items[type];
+        saveAndRender();
+      }
+
+      function updateNotes() {
+        notes = document.getElementById("notes").value.trim();
+        saveAll();
+      }
+
+      function exportText() {
+        const note = document.getElementById("notes").value.trim();
+        let output = "";
+        for (const [type, count] of Object.entries(items)) {
+          output += `${type}: ${count}\n`;
+        }
+        if (note) output += `\nNotes:\n${note}`;
+        navigator.clipboard.writeText(output);
+        alert("Copied to clipboard.");
+      }
+
+      function render() {
+        const list = document.getElementById("list");
+        const notesEl = document.getElementById("notes");
+        list.innerHTML = "";
+        notesEl.value = notes;
+
+        document.getElementById("auditTitle").value = auditTitle;
+
+        for (const [type, count] of Object.entries(items)) {
+          const row = document.createElement("div");
+          row.className = "row";
+          row.innerHTML = `
+  <input type="text" class="name-input" value="${type}" onchange="renameType('${type}', this.value)" style="width: 120px;" />
+  <button class="btn" onclick="changeCount('${type}', -1)">-</button>
+  <input type="text" class="count-input" value="${count}" onchange="updateCount('${type}', this.value)" style="width: 50px;" />
+  <button class="btn" onclick="changeCount('${type}', 1)">+</button>
+  <button class="btn" onclick="clearCount('${type}')">Clear</button>
+  <button class="btn" onclick="deleteType('${type}')">Delete</button>
+`;
+          list.appendChild(row);
+        }
+      }
+
+      function saveAll() {
+        window.electronAPI.saveData({ items, notes, auditTitle });
+      }
+
+      function saveAndRender() {
+        saveAll();
+        render();
+      }
+    </script>
+  </body>
+</html>
