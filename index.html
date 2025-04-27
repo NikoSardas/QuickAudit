@@ -34,7 +34,7 @@
       }
       #importField {
         width: 100%;
-        height: 80px;
+        height: 80pxÍ;
         margin-top: 10px;
       }
       #list .row {
@@ -60,12 +60,7 @@
       type="text"
       id="auditTitle"
       value=""
-      style="
-        font-size: 1.5em;
-        font-weight: bold;
-        width: 100%;
-        margin-bottom: 20px;
-      "
+      style="font-size: 1.5em; font-weight: bold; width: 100%; margin-bottom: 20px"
       oninput="updateTitle()"
     />
 
@@ -76,12 +71,7 @@
 
     <div id="list"></div>
 
-    <textarea
-      id="notes"
-      class="textarea"
-      placeholder="Notes..."
-      oninput="updateNotes()"
-    ></textarea>
+    <textarea id="notes" class="textarea" placeholder="Notes..." oninput="updateNotes()"></textarea>
 
     <div style="margin-top: 20px">
       <button
@@ -126,29 +116,29 @@
       </button>
     </div>
 
-    <script>
+    <script type="text/javascript">
       let items = {};
-      let notes = "";
-      let auditTitle = "";
+      let notes = '';
+      let auditTitle = '';
 
       window.electronAPI.loadData().then((data) => {
         items = data.items || {};
-        notes = data.notes || "";
-        auditTitle = data.auditTitle || "Item Audit";
+        notes = data.notes || '';
+        auditTitle = data.auditTitle || 'Item Audit';
         render();
       });
 
-      window.addEventListener("beforeunload", () => {
+      window.addEventListener('beforeunload', () => {
         saveAll();
       });
 
       function updateTitle() {
-        auditTitle = document.getElementById("auditTitle").value.trim();
+        auditTitle = document.getElementById('auditTitle').value.trim();
         saveAll();
       }
 
       function addType() {
-        const type = document.getElementById("typeInput").value.trim();
+        const type = document.getElementById('typeInput').value.trim();
         if (!type || items[type]) return;
         items[type] = 0;
         saveAndRender();
@@ -163,10 +153,9 @@
       }
 
       function clearCurrent() {
-        if (!confirm("Clear current audit? This won’t delete saved ones."))
-          return;
+        if (!confirm('Clear current audit? This won’t delete saved ones.')) return;
         items = {};
-        notes = "";
+        notes = '';
         saveAndRender();
       }
 
@@ -182,9 +171,9 @@
       }
 
       function deleteList() {
-        if (!confirm("Delete the entire list?")) return;
+        if (!confirm('Delete the entire list?')) return;
         items = {};
-        notes = "";
+        notes = '';
         saveAndRender();
       }
 
@@ -207,32 +196,32 @@
       }
 
       function updateNotes() {
-        notes = document.getElementById("notes").value.trim();
+        notes = document.getElementById('notes').value.trim();
         saveAll();
       }
 
       function exportText() {
-        const note = document.getElementById("notes").value.trim();
-        let output = "";
+        const note = document.getElementById('notes').value.trim();
+        let output = '';
         for (const [type, count] of Object.entries(items)) {
           output += `${type}: ${count}\n`;
         }
         if (note) output += `\nNotes:\n${note}`;
         navigator.clipboard.writeText(output);
-        alert("Copied to clipboard.");
+        alert('Copied to clipboard.');
       }
 
       function render() {
-        const list = document.getElementById("list");
-        const notesEl = document.getElementById("notes");
-        list.innerHTML = "";
+        const list = document.getElementById('list');
+        const notesEl = document.getElementById('notes');
+        list.innerHTML = '';
         notesEl.value = notes;
 
-        document.getElementById("auditTitle").value = auditTitle;
+        document.getElementById('auditTitle').value = auditTitle;
 
         for (const [type, count] of Object.entries(items)) {
-          const row = document.createElement("div");
-          row.className = "row";
+          const row = document.createElement('div');
+          row.className = 'row';
           row.innerHTML = `
   <input type="text" class="name-input" value="${type}" onchange="renameType('${type}', this.value)" style="width: 120px;" />
   <button class="btn" onclick="changeCount('${type}', -1)">-</button>
